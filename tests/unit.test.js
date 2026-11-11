@@ -5,6 +5,9 @@ import { buildAss } from '../server/lib/render.js';
 import { heuristicMoments } from '../server/lib/pipeline.js';
 import { parseYouTubeId } from '../server/lib/agent.js';
 
+/** Strip ASS override tags so assertions can match the spoken words. */
+const plain = (line) => line.replace(/\{[^}]*\}/g, '');
+
 test('parseYouTubeId understands the URL shapes users paste', () => {
   assert.equal(parseYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
   assert.equal(parseYouTubeId('https://youtu.be/dQw4w9WgXcQ?t=42'), 'dQw4w9WgXcQ');
@@ -30,10 +33,12 @@ test('buildAss emits one dialogue line per segment with clip-relative timing', (
 
   const dialogues = ass.split('\n').filter((line) => line.startsWith('Dialogue:'));
   assert.equal(dialogues.length, 2);
-  // The clip starts at 10s, so the first caption starts at 0:00:00.00.
+  // Captions are clip-relative because the renderer seeks with -ss: the segment at
+  // 10s inside a clip starting at 10s must begin at 0:00:00.00.
   assert.match(dialogues[0], /Dialogue: 0,0:00:00\.00,/);
-  assert.match(dialogues[0], /first line/);
+  assert.match(plain(dialogues[0]), /first line/);
   assert.match(dialogues[1], /0:00:02\.50/);
+  assert.match(plain(dialogues[1]), /second line/);
 });
 
 test('buildAss skips empty segments instead of rendering blank captions', () => {
@@ -47,7 +52,24 @@ test('buildAss skips empty segments instead of rendering blank captions', () => 
   );
   const dialogues = ass.split('\n').filter((line) => line.startsWith('Dialogue:'));
   assert.equal(dialogues.length, 1);
-  assert.match(dialogues[0], /real words/);
+  assert.match(plain(dialogues[0]), /real words/);
+});
+
+test('buildAss clamps captions to the clip window', () => {
+  const ass = buildAss(
+    [
+      { start: 100, end: 110, text: 'before the clip' },
+      { start: 45, end: 50, text: 'inside the clip' },
+      { start: 80, end: 90, text: 'after the clip' },
+    ],
+    42,
+    60,
+  );
+  const dialogues = ass.split('\n').filter((line) => line.startsWith('Dialogue:'));
+  assert.equal(dialogues.length, 1, 'only the in-window segment is captioned');
+  // 45s inside a clip starting at 42s is 3s into the clip, not 45s.
+  assert.match(dialogues[0], /Dialogue: 0,0:00:03\.00,0:00:08\.00,/);
+  assert.match(plain(dialogues[0]), /inside the clip/);
 });
 
 test('heuristicMoments returns in-bounds, non-overlapping highlights', () => {

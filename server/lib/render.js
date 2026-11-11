@@ -104,8 +104,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     for (let i = 0; i < chunks; i += 1) {
       const chunkText = chunks === 1 ? lines.join('\\N') : lines[Math.min(i, lines.length - 1)];
       if (!chunkText) continue;
+      // The renderer seeks with -ss, so clip time starts at zero: subtract clipStart
+      // or every caption would appear clipStart seconds late (and never at all for
+      // clips taken from deep in a long video).
+      const offset = start - clipStart;
       events.push(
-        `Dialogue: 0,${assTime(start + i * per)},${assTime(start + (i + 1) * per)},Cap,,0,0,0,,{\\fad(80,80)}${highlight(chunkText)}`,
+        `Dialogue: 0,${assTime(offset + i * per)},${assTime(offset + (i + 1) * per)},Cap,,0,0,0,,{\\fad(80,80)}${highlight(chunkText)}`,
       );
     }
   }
