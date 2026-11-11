@@ -106,7 +106,8 @@ async function main() {
     form.append('title', 'E2E synthetic source');
     const created = await json('/api/projects', { method: 'POST', body: form });
     const project = created.body?.project;
-    check('upload creates a project', created.status === 200 && !!project, project?.id || JSON.stringify(created.body).slice(0, 160));
+    check('upload creates a project', (created.status === 200 || created.status === 201) && !!project, `${created.status} ${project?.id || ''}`);
+    check('upload auto-starts the agent workflow', !!created.body?.job, created.body?.job?.id || '');
 
     const unauthorised = await json('/api/projects', {
       method: 'POST',
@@ -120,7 +121,11 @@ async function main() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ count: 2 }),
     });
-    check('autonomous run enqueues a task', run.status === 200 && !!run.body?.job, run.body?.job?.id || '');
+    check(
+      'a second run reuses the in-flight task',
+      run.status === 200 && !!run.body?.job && run.body.job.id === created.body?.job?.id,
+      `${run.body?.job?.id || 'none'} vs ${created.body?.job?.id || 'none'}`,
+    );
 
     // Poll the real queue.
     const deadline = Date.now() + 240_000;
@@ -140,6 +145,8 @@ async function main() {
     const job = (finalState.jobs || []).find((j) => j.project_id === project.id && j.type === 'autopilot');
     check('autopilot task reached a terminal state', !!job && ['completed', 'failed'].includes(job.status), job ? `${job.status} · ${job.message || ''}` : 'no job');
     check('at least one Short rendered', shorts.length > 0, `${shorts.length} clips`);
+    const idxs = new Set(shorts.map((s) => s.idx));
+    check('no duplicate clips from concurrent runs', shorts.length === idxs.size, `${shorts.length} clips / ${idxs.size} distinct idx`);
 
     const rendered = shorts.filter((s) => s.status === 'awaiting_approval' || s.status === 'approved');
     check('clips await approval instead of auto-publishing', rendered.length > 0, rendered.map((s) => s.status).join(','));

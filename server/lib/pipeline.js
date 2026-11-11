@@ -517,7 +517,15 @@ export async function runAutopilot({ project, count, ctx }) {
   if (selection.warning) ctx.log(selection.warning, 'warn');
   if (!selection.moments.length) throw new Error('No usable moments were found in this video.');
 
+  // Regenerating replaces the previous clips: drop the rows and their files so
+  // stale renders cannot accumulate on disk or in the gallery.
+  const previous = db.prepare('SELECT file_path, thumb_path FROM shorts WHERE project_id = ?').all(project.id);
   db.prepare('DELETE FROM shorts WHERE project_id = ?').run(project.id);
+  for (const old of previous) {
+    for (const stale of [old.file_path, old.thumb_path]) {
+      if (stale) fs.rm(stale, { force: true }, () => {});
+    }
+  }
   db.prepare('UPDATE projects SET status=?, stage=?, progress=?, short_count=?, updated_at=? WHERE id=?').run(
     'processing',
     'generating shorts',

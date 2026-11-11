@@ -232,6 +232,12 @@ export async function attachSourceToProject(projectId, { filePath, originalName,
 export function startWorkflow(projectId, count) {
   const project = getProject(projectId);
   if (!project) throw new Error('Project not found');
+  // Reuse an in-flight run: two concurrent autopilot jobs on one project would
+  // interleave their "replace existing clips" step and leave duplicate Shorts.
+  const active = listJobs({ projectId, limit: 25 }).find(
+    (job) => job.type === 'autopilot' && ['queued', 'running', 'paused', 'pause_requested'].includes(job.status),
+  );
+  if (active) return active;
   const prefs = getPreferences();
   const target = Math.max(1, Math.min(10, Number(count) || Number(prefs.shortsPerVideo) || 5));
   db.prepare("UPDATE projects SET status='queued', stage='queued', progress=0, error=NULL, updated_at=? WHERE id=?").run(now(), projectId);
