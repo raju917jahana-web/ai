@@ -1,0 +1,28 @@
+{
+  "name": "youtube-autopilot-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "YouTube Autopilot AI — autonomous agent that turns long videos into published YouTube Shorts",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "vite build",
+    "start": "node server/index.js",
+    "dev": "node server/index.js & vite",
+    "test": "node --test --test-concurrency=1 tests/",
+    "check": "npm run test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^7.1.12"
+  }
+}
