@@ -92,7 +92,7 @@ export default function ShortDetail({ shortId, onClose, refresh, toast }) {
   const openPreview = async () => {
     try {
       const payload = await api.preview(short.id);
-      setPreview(payload);
+      setPreview(payload?.preview || payload);
       setConfirmPublish(false);
     } catch (err) {
       toast(err.message, 'error');
