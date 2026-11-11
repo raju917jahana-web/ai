@@ -178,7 +178,7 @@ export default function App() {
           <div className="empty">Loading agent state…</div>
         ) : (
           <>
-            {tab === 'agent' && <Chat refresh={refresh} toast={toast} />}
+            {tab === 'agent' && <Chat state={state} refresh={refresh} toast={toast} goto={setTab} />}
             {tab === 'dashboard' && <Dashboard state={state} refresh={refresh} toast={toast} goto={setTab} />}
             {tab === 'projects' && <Projects state={state} refresh={refresh} toast={toast} goto={setTab} />}
             {tab === 'shorts' && <ShortsView state={state} refresh={refresh} toast={toast} mode="all" />}
