@@ -12,7 +12,8 @@
     "start": "node server/index.js",
     "dev": "node server/index.js & vite",
     "test": "node --test --test-concurrency=1 tests/",
-    "check": "npm run test"
+    "e2e": "node scripts/e2e.js",
+    "check": "npm run test && npm run build"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
